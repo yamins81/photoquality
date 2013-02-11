@@ -20,9 +20,7 @@ import skdata.larray as larray
 from skdata.data_home import get_data_home
 from skdata.utils.download_and_extract import download_boto, extract
 
-from . import utils
-from . import classifier
-
+import boto
 
 class TechRehearsalImages(object):
 
@@ -32,14 +30,22 @@ class TechRehearsalImages(object):
 
     S3_FILES = []
 
+    insize = (4256, 2832)
 
     def __init__(self):
-        pass
+        self.conn = boto.connect_s3()
+        self.bucket = self.conn.get_bucket('pics-from-sam')
+        resource_home  = self.home('resources')
+        if not os.path.exists(resource_home):
+            os.makedirs(resource_home)
 
     def home(self, *suffix_paths):
         return os.path.join(get_data_home(), self.name, *suffix_paths)
 
     def download_image(self):
+        pass
+        
+    def fetch(self):
         pass
 
     @property
@@ -54,45 +60,47 @@ class TechRehearsalImages(object):
         return self.meta['filename']
 
     def _get_meta(self):
-
+        L = filter(lambda x: x.name.startswith('Tech Rehearsal/') and x.name.endswith('.JPG'), 
+                   list(self.bucket.list()))
+        tr_orientations = cPickle.loads(self.bucket.get_key('tr_orientations.pkl').get_contents_as_string())
+        
+        recs = []
+        for l in L:
+            ls = l.name.split('/')
+            if len(ls) == 4:
+                _, event, sam_rank, fname = l.name.split('/')
+                sam_rank = sam_rank.lower()
+            else:
+                _, event, fname = l.name.split('/')
+                sam_rank = 'good'
+            sname = '/'.join(l.name.split('/')[1:])
+            orientation = tr_orientations.get(sname, '-')
+            recs.append((event, sam_rank, fname, l.name, orientation))
+        
+        meta = tb.tabarray(records=recs, names=['event', 'sam_rank', 'name', 'filename', 'orientation'])
         return meta
 
     def get_images(self, preproc):
-        pass
+        dtype = preproc['dtype']
+        mode = preproc['mode']
+        size = tuple(preproc['size'])
+        normalize = preproc['normalize']
+        resource_home = self.home('resources')
+        return larray.lmap(ImgDownloaderResizer(resource_home,
+                                            self.bucket, 
+                                            inshape=self.insize,
+                                            shape=size,
+                                            dtype=dtype,
+                                            normalize=normalize,
+                                            mode=mode),
+                                self.filenames)
 
-    def get_category_splits(self, *args, **kwargs):
-        return get_category_splits(self.meta, *args, **kwargs)
 
     def get_subset_splits(self, *args, **kwargs):
         return get_subset_splits(self.meta, *args, **kwargs)
 
     def get_splits(self, *args, **kwargs):
         return get_splits(self.meta, *args, **kwargs)
-
-    @property
-    def categories(self):
-        return np.unique(self.meta['category'])
-        
-    @property
-    def human_dissimilarity(self):
-        path = self.home('kriegeskorte_hvm', 'RDM_hIT_fig1.txt')
-        return np.array(map(lambda x: map(float, x.strip().split('  ')),
-                             open(path, 'rU').readlines()))
-
-    @property
-    def monkey_dissimilarity(self):
-        path = self.home('kriegeskorte_hvm', 'RDM_mIT_fig1.txt')
-        return np.array(map(lambda x: map(float, x.strip().split('  ')),
-                             open(path, 'rU').readlines()))
-
-
-def get_category_splits(meta, npc_train, npc_tests, num_splits,
-                        train_q=None, test_qs=None, test_names=None, npc_validate=0):
-    catfunc = lambda x: x['category']
-    return get_subset_splits(meta, npc_train, npc_tests, num_splits,
-                             catfunc, train_q=train_q, test_qs=test_qs,
-                             test_names=test_names,
-                             npc_validate=npc_validate)
 
 
 def get_splits(meta, ntrain, ntests, num_splits, train_q=None, test_qs=None, test_names=None, nvalidate=0):
@@ -199,10 +207,12 @@ def get_subset_splits(meta, npc_train, npc_tests, num_splits,
     return splits, validations
 
 
-class ImgLoaderResizer(object):
+class ImgDownloaderResizer(object):
     """
     """
     def __init__(self,
+                 download_dir,
+                 bucket,
                  inshape,
                  shape=None,
                  ndim=None,
@@ -210,6 +220,8 @@ class ImgLoaderResizer(object):
                  normalize=True,
                  mode='L'
                  ):
+        self.download_dir = download_dir
+        self.bucket = bucket
         self.inshape = inshape
         shape = tuple(shape)
         self._shape = shape
@@ -231,13 +243,23 @@ class ImgLoaderResizer(object):
         raise AttributeError(attr)
 
     def __call__(self, file_path):
-        im = Image.open(file_path)
+        lpath = os.path.join(self.download_dir, file_path)
+        dirname = os.path.dirname(lpath)
+        if not os.path.isdir(dirname):
+            os.makedirs(dirname)
+        if not os.path.isfile(lpath):
+            k = self.bucket.get_key(file_path)
+            k.get_contents_to_filename(lpath)
+        im = Image.open(lpath)
         if im.mode != self.mode:
             im = im.convert(self.mode)
-        assert im.size == self.inshape[:2]
-        if max(im.size) != self._shape[0]:
-            m = self._shape[0]/float(max(im.size))
-            new_shape = (int(round(im.size[0]*m)), int(round(im.size[1]*m)))
+        if not im.size == self.inshape[:2]:
+            im = im.transpose(Image.ROTATE_270)
+        assert im.size == self.inshape[:2], (im.size, self.inshape[:2])
+        if im.size != self._shape[0]:
+            m0 = self._shape[0]/float(im.size[0])
+            m1 = self._shape[1]/float(im.size[1])
+            new_shape = (int(round(im.size[0]*m0)), int(round(im.size[1]*m1)))
             im = im.resize(new_shape, Image.ANTIALIAS)
         rval = np.asarray(im, self._dtype)
         if self.normalize:
@@ -246,6 +268,6 @@ class ImgLoaderResizer(object):
         else:
             if 'float' in str(self._dtype):
                 rval /= 255.0
-        assert rval.shape == self._shape
+        assert rval.shape == self._shape, (rval.shape, self._shape)
         return rval
 
