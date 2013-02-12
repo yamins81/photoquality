@@ -32,8 +32,11 @@ class TechRehearsalImages(object):
 
     insize = (4256, 2832)
 
-    def __init__(self):
-        self.conn = boto.connect_s3()
+    def __init__(self, credentials=None):
+        if credentials is None:
+            self.conn = boto.connect_s3()
+        else:
+            self.conn = boto.connect_s3(*credentials)
         self.bucket = self.conn.get_bucket('pics-from-sam')
         resource_home  = self.home('resources')
         if not os.path.exists(resource_home):
