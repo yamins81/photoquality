@@ -28,7 +28,7 @@ padding: 10px;
 <script type="text/javascript" src="http://web.mit.edu/esolomon/www/javascripts/jQueryRotate.2.2.js"></script>
 <script type="text/javascript" src="http://web.mit.edu/esolomon/www/javascripts/jQuery.mousewheel.js"></script>
 <script type="text/javascript" src="http://web.mit.edu/esolomon/www/javascripts/jquery.zoom-min.js"></script>
-<script type="text/javascript" src="http://web.mit.edu/esolomon/www/scene_parsing/scene_parsing_task8/group0.js"></script>
+<script type="text/javascript" src="http://web.mit.edu/yamins/www/18_bang_subsets.js"></script>
 <script type="text/javascript" src="http://web.mit.edu/esolomon/www/zen.js"></script>
 <script type="text/javascript" src="http://esolomon.scripts.mit.edu/ip.php"></script>
 <script src="http://web.mit.edu/esolomon/www/javascripts/detect-zoom.js" type="text/javascript"></script>
@@ -83,16 +83,15 @@ function init_boxes(){
    for (var i = 0; i < numImages; i++){
         im = new Image;
         imarray.push(im);
-        $('#row1').append('<td><div><img id="image_' + String(i) + '" src="" /><input style="height:20px; width:30px;" class="inputorder" value="0" type="text" maxlength="3" id="inp2" /></div></td>')
+        $('#row1').append('<td><div><img id="image_' + String(i) + '" src=""/><br/><input style="height:20px; width:30px;" class="inputorder" value="0" type="text" maxlength="3" id="inp2" /></div></td>')
    };
 }
 
 function setStimuli(tn){
    x = img_files[tn]; 
-   console.log(x);
    for (var i = 0; i < numImages; i++){
         im = imarray[i];
-        im.src = x[i];
+        im.src = "http://pics-from-sam.s3.amazonaws.com/small_tr_pics/" + x[i];
         $('#image_' + String(i)).attr('src', im.src)
         $('.inputorder').val(0);
    };  
@@ -208,8 +207,8 @@ function init_vars() {
 	numImages = 2;
 	BreakTimes = [Math.round(totalTrials/2)];
 	imarray = new Array();
-	img_files = [["http://s3.amazonaws.com/monkeyimgs/2way_impute/break.png",
-	             "http://s3.amazonaws.com/monkeyimgs/2way_impute/break.png"]*10];
+	//img_files = [["http://pics-from-sam.s3.amazonaws.com/small_tr_pics/Tech Rehearsal/24_Preshow/D70_9503.JPG",
+	//              "http://pics-from-sam.s3.amazonaws.com/small_tr_pics/Tech Rehearsal/24_Preshow/D70_9515.JPG"]];
 }
 
 
