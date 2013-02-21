@@ -32,8 +32,11 @@ class TechRehearsalImages(object):
 
     insize = (4256, 2832)
 
-    def __init__(self):
-        self.conn = boto.connect_s3()
+    def __init__(self, credentials=None):
+        if credentials is None:
+            self.conn = boto.connect_s3()
+        else:
+            self.conn = boto.connect_s3(*credentials)
         self.bucket = self.conn.get_bucket('pics-from-sam')
         resource_home  = self.home('resources')
         if not os.path.exists(resource_home):
@@ -276,7 +279,7 @@ class ImgDownloaderResizer(object):
             m1 = self._shape[1]/float(im.size[1])
             new_shape = (int(round(im.size[0]*m0)), int(round(im.size[1]*m1)))
             im = im.resize(new_shape, Image.ANTIALIAS)
-        rval = np.asarray(im, self._dtype)
+        rval = np.asarray(im, self._dtype).swapaxes(0, 1)
         if self.normalize:
             rval -= rval.mean()
             rval /= max(rval.std(), 1e-3)
