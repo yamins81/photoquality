@@ -1,4 +1,7 @@
-from .utils import events
+import json
+
+from .utils import tr_events
+from .datasets import TechRehearsalImages
 
 template="""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -67,6 +70,17 @@ function checkCorrect(vls){
 
 };
 
+function checkCorrectppl(vls){
+    var v = vls.slice(0); 
+    if (_.isEmpty(_.without(v, "1", "2", "3", "m"))){
+        return true
+    } else {
+        console.log(v, _.without(v, "1", "2", "3", "m"));
+        return false
+    };
+
+};
+
 function beginExp() {
 	console.log('beginExp');
 	$("#begintask").hide(), $("#_preload").hide();
@@ -79,13 +93,25 @@ function beginExp() {
 							   $('.inputorder').each(function() {
 							   							vals.push($(this).val())
 							   									});
-							   					
-							    if (checkCorrect(vals)){                                
+
+							   var vals2 = [];
+							   $('.numppl').each(function() {
+							   							vals2.push($(this).val())
+							   									});
+							   		
+							    
+							   if (!(checkCorrect(vals))){
+							       alert("Your ranking response (first row) has not been completed properly.\\n\\nYou must annotate the images with quality rankings, 1 through 5, with 1 being the best and 5 being the least good. No ranking ties are allowed, so each image gets a unique quality ranking.");
+							   };
+							   if (!(checkCorrectppl(vals2))){
+							       alert("Your number of people response (second row) has not been completed properly.\\n\\n You must annotate the number of people in each image.  If you see 3 or fewer people in a given image, just type the number of people in the image.  But since we don't want you to spend to much time on this task, if you see more than 3 people, do not count them and instead, just type 'm', for 'many'.");
+							   };							   
+							   	
+							    if (checkCorrect(vals) && checkCorrectppl(vals2)){                                
                                     trialEndTime = new Date();
                                     $('#group_container').hide();				   
-                                    clicked(vals); }
-                                else {
-                                    alert('Your response is not completed properly.  You must annotate the images with quality rankings, 1 through 5. ');    
+                                    clicked(vals, vals2); 
+                                    
                                 };
 
 							   });
@@ -98,11 +124,13 @@ function beginExp() {
 
 function init_boxes(){
    var im;
-   T = $('#boxes').append('<table id="imgtable"><tr id="row1"></tr></table>')
+   T = $('#boxes').append('<table id="imgtable"><tr id="row1"></tr><tr id="row2"></tr><tr id="row3"></tr></table>')
    for (var i = 0; i < numImages; i++){
         im = new Image;
         imarray.push(im);
-        $('#row1').append('<td><div><img id="image_' + String(i) + '" src=""/><br/><input style="height:20px; width:30px;" class="inputorder" value="" type="text" maxlength="3" id="inp2" /></div></td>')
+        $('#row1').append('<td><div><img id="image_' + String(i) + '" src=""/><br/></div></td>');
+        $('#row2').append('<td><div><input style="height:20px; width:30px;" class="inputorder" value="" type="text" maxlength="3" /> rank out of 5.</div></td>');
+        $('#row3').append('<td><div><input style="height:20px; width:30px;" class="numppl" value="" type="text" maxlength="3"/> person(s) present.</div></td>');
    };
 }
 
@@ -113,6 +141,7 @@ function setStimuli(tn){
         im.src = "http://pics-from-sam.s3.amazonaws.com/small_tr_pics/" + x[i];
         $('#image_' + String(i)).attr('src', im.src)
         $('.inputorder').val("");
+        $('.numppl').val("");
    };  
 }
 
@@ -127,19 +156,19 @@ function showStim() {
 	setStimuli(trialNumber)	
 }
 
-function clicked(myval) {
+function clicked(myval, myval2) {
 	console.log('clicked');
- pushData(myval)
+ pushData(myval, myval2)
 
  endTrial();
 	
 }
 
 
-function pushData(myval) {
+function pushData(myval, myval2) {
 	console.log('pushData');
 StimDone.push(img_files[trialNumber]);
-response.push(myval);
+response.push(_.zip(myval, myval2));
 trialDurations.push(trialEndTime - trialStartTime);
 }
 
@@ -222,7 +251,7 @@ function init_vars() {
 	breakscreen = new Image;
 	breakscreen.src = "http://s3.amazonaws.com/monkeyimgs/2way_impute/break.png";
 	trialNumber = 0;
-	totalTrials = 500;
+	totalTrials = img_files.length;
 	numImages = 5;
 	BreakTimes = [Math.round(totalTrials/2)];
 	imarray = new Array();
@@ -282,7 +311,7 @@ $(document).ready(function() {
 <div id="tutorial_original" style="position:absolute; z-index:-1; visibility:hidden;" 
 <b>Please read these instructions carefully!</b>
 <p>Thank you for your interest! You are contributing to ongoing vision research at the Massachusetts Institute of Technology McGovern Institute for Brain Research.</p>
-<p><font color=red><b>This task will require you to look at images on your computer screen and type numbers to indicate rankinds, for up to about 30 minutes. If you cannot meet these requirements for any reason, or if doing so could cause discomfort or injury to you, do not accept this HIT.</p>
+<p><font color=red><b>This task will require you to look at images on your computer screen and type numbers and letters to indicate your responses, for up to about 30 minutes. If you cannot meet these requirements for any reason, or if doing so could cause discomfort or injury to you, do not accept this HIT.</p>
 <p>We encourage you to try a little bit of this HIT before accepting to ensure it is compatible with your system. If you think the task is working improperly, your computer may be incompatible.</p></font></b>
 <p>We recommend this task for those who are interested in contributing to scientific endeavors. Your answers will help MIT researchers better understand how the brain processes visual information.</p>
 <center><p onclick="$('#tutorial').html($('#tutorial2').html())"><font color=blue><u>Click here to continue reading</u></font></p></center></div>
@@ -292,13 +321,13 @@ $(document).ready(function() {
 <p>
 <li>In this task, you'll have two jobs for each group of 5 images.   First, you'll rank the images according to subjective quality.   By "subjective quality", we just mean your own personal sense of how you like each image, compared to the others in the group.   To indicate your ranking, type the number 1, 2, 3, 4, or 5 under the image -- where 1 is the best image and 5 is the least good.  No ties in ranking are allowed, so you must always label exactly one image as 1 (the best), one image as 2 (second best), and so on. </li>
 <p>
-<li> Your second job is to get a quick count the number of people in the image.  If you see one person, type "1", if you see two peopel, type "2", &c. But we don't want you to spend too much time on this task, so if you see more than 3 people, just type "m" (that is, for "many").</li>
+<li> Your second job is to get a quick count of the number of people in the image.  If you see one person, type "1", if you see two people, type "2", &c. But we don't want you to spend too much time on this task, so if you see more than 3 people, just type "m" (that is, for "many").</li>
 </ul>
 <center><p onclick="$('#tutorial').html($('#tutorial3').html())"><font color=blue><u>Click here to continue reading</u></font></p></center>
 </div>
 <div id="tutorial3" style="visibility:hidden; position:absolute; z-index:-1;"> 
 <ul>
-<li><b>In total, you will see 500 images. We expect this experiment to take about 30 minutes.</b> Halfway through, we will give you a chance to take a short break and inform you of your progress. Note that the HIT will expire if you spend more than 1 hour, so plan your time accordingly.</li>
+<li><b>In total, you will see at most 200 sets of images, but usually somewhat fewer. We expect this experiment to take about 30 minutes.</b> Halfway through, we will give you a chance to take a short break and inform you of your progress. Note that the HIT will expire if you spend more than 1 hour, so plan your time accordingly.</li>
 <p>
 <li>When you are ready to begin, click the "Begin" button at the very top of the screen.</li>
 <p>
@@ -317,11 +346,24 @@ $(document).ready(function() {
 </html>
 """
 
-def make_js_files():
+js_template = """var img_files=%s;
+"""
+
+def make_html_files():
     for e in tr_events:
-        e = e.replace(' ', '_')
+        e = e.replace(' ', '_').lower()
         d = template % e
-        outfile = "mturk_pq_%s.js" % e
+        outfile = "mturk_pq_%s.html" % e
         with open(outfile, 'w') as f:
             f.write(d)
 
+
+def make_js_files(credentials):
+    dataset = TechRehearsalImages(credentials)
+    subsets = dataset.get_subsets(5)
+    for e in tr_events:
+        el = e.replace(' ', '_').lower()
+        d = js_template % json.dumps(subsets[e])
+        outfile = "%s_subsets.js" % el
+        with open(outfile, 'w') as f:
+            f.write(d)
