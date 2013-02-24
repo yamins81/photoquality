@@ -105,17 +105,18 @@ class TechRehearsalImages(object):
     def get_splits(self, *args, **kwargs):
         return get_splits(self.meta, *args, **kwargs)
 
-    def get_subsets(self, k):
+    def get_subsets(self, k, n=None):
         meta = self.meta
         events = np.unique(meta['event'])
         subset_d = {}
         for e in events:
             m = meta[meta['event'] == e]
-            n = len(m)
+            if n is None:
+                n = len(m)
             filenames = m['filename']
             subsets = []
             for ind in range(n):
-                p = np.random.RandomState(seed=ind).permutation(n)[:k]
+                p = np.random.RandomState(seed=ind).permutation(len(m))[:k]
                 subsets.append(filenames[p].tolist())
             subset_d[e] = subsets
         return subset_d
