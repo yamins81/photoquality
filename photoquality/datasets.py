@@ -84,6 +84,7 @@ class TechRehearsalImages(object):
                 download_boto(url, self.credentials, filename, sha1=sha1)
 
     def load_human_data(self):
+        self.fetch()
         hd = {}
         for x in self.human_data:
             fn = self.home('human_data', x+ '.pkl')
@@ -95,6 +96,7 @@ class TechRehearsalImages(object):
     def analyze_human_data(self):
         hd = self.load_human_data()
         A = {}
+        DSS = {}
         for k in hd:
             data = hd[k]
             N = len(data)
@@ -109,8 +111,10 @@ class TechRehearsalImages(object):
                         else:    
                             d[i] = [r0]
             Ds = [dict([(_k, np.mean(v)) for _k, v in d.items()]) for d in ds]
+            DSS[k] = Ds
             A[k] = np.array([ds.values() for ds in Ds])
-        return A
+            
+        return A, DSS
             
     @property
     def meta(self):
