@@ -88,25 +88,16 @@ function beginExp() {
 							   var vals = [];
 							   $('.inputorder').each(function() {
 							   							vals.push($(this).val())
-							   									});
-
-							   var vals2 = [];
-							   $('.numppl').each(function() {
-							   							vals2.push($(this).val())
-							   									});
-							   		
+							   									});	
 							    
 							   if (!(checkCorrect(vals))){
 							       alert("Your ranking response (first row) has not been completed properly.\\n\\nYou must annotate the images with quality rankings, 1 through " + numImages + ", with 1 being the best and " + numImages + " being the least good. No ranking ties are allowed, so each image gets a unique quality ranking.");
-							   };
-							   if (!(checkCorrectppl(vals2))){
-							       alert("Your number of people response (second row) has not been completed properly.\\n\\n You must annotate the number of people in each image.  If you see 3 or fewer people in a given image, just type the number of people in the image.  But since we don't want you to spend to much time on this task, if you see more than 3 people, do not count them and instead, just type 'm', for 'many'.");
 							   };							   
 							   	
-							    if (checkCorrect(vals) && checkCorrectppl(vals2)){                                
+							    if (checkCorrect(vals)){                                
                                     trialEndTime = new Date();
                                     $('#group_container').hide();				   
-                                    clicked(vals, vals2); 
+                                    clicked(vals); 
                                     
                                 };
 
@@ -120,14 +111,18 @@ function beginExp() {
 
 function init_boxes(){
    var im;
-   T = $('#boxes').append('<table style="border-spacing:8px" id="imgtable"><tr id="row1"></tr><tr id="row2"></tr><tr id="row3"></tr></table>')
-   for (var i = 0; i < numImages; i++){
-        im = new Image;
-        imarray.push(im);
-        $('#row1').append('<td><div><img id="image_' + String(i) + '" src=""/><br/></div></td>');
-        $('#row2').append('<td><div><input style="height:20px; width:30px;" class="inputorder" value="" type="text" maxlength="3" /> rank out of ' + numImages + '.</div></td>');
-        $('#row3').append('<td><div><input style="height:20px; width:30px;" class="numppl" value="" type="text" maxlength="3"/> person(s) present.</div></td>');
-   };
+   var nrows = Math.round(numImages/3.0);
+   for (var rnum = 0; rnum < nrows; rnum++){
+       console.log(rnum)
+       T = $('#boxes').append('<table style="border-spacing:8px" id="imgtable_' + rnum + '"><tr id="row1' + rnum + '"></tr><tr id="row2' + rnum + '"></tr></table>');
+       for (var i = 0; i < 3; i++){
+            im = new Image;
+            imarray.push(im);
+            $('#row1' + rnum).append('<td><div><img id="image_' + (3*rnum + i)  + '" src=""/><br/></div></td>');
+            $('#row2' + rnum).append('<td><div><input style="height:20px; width:30px;" class="inputorder" value="" type="text" maxlength="3" /> rank out of ' + numImages + '.</div></td>');
+       };
+   };   
+       
 }
 
 function setStimuli(tn){
@@ -137,7 +132,6 @@ function setStimuli(tn){
         im.src = "http://pics-from-sam.s3.amazonaws.com/small_tr_pics/" + x[i];
         $('#image_' + String(i)).attr('src', im.src)
         $('.inputorder').val("");
-        $('.numppl').val("");
    };  
 }
 
@@ -152,19 +146,19 @@ function showStim() {
 	setStimuli(trialNumber)	
 }
 
-function clicked(myval, myval2) {
+function clicked(myval) {
 	console.log('clicked');
- pushData(myval, myval2)
+ pushData(myval)
 
  endTrial();
 	
 }
 
 
-function pushData(myval, myval2) {
+function pushData(myval) {
 	console.log('pushData');
 StimDone.push(img_files[trialNumber]);
-response.push(_.zip(myval, myval2));
+response.push(myval);
 trialDurations.push(trialEndTime - trialStartTime);
 }
 
@@ -249,7 +243,7 @@ function init_vars() {
 	trialNumber = 0;
 	totalTrials = img_files.length;
 	numImages = %NUMIMAGES;
-	BreakTimes = [Math.round(totalTrials/2)];
+	BreakTimes = [Math.round(totalTrials/4), Math.round(totalTrials/2), Math.round(3*totalTrials/4)];
 	imarray = new Array();
 	//img_files = [["http://pics-from-sam.s3.amazonaws.com/small_tr_pics/Tech Rehearsal/24_Preshow/D70_9503.JPG",
 	//              "http://pics-from-sam.s3.amazonaws.com/small_tr_pics/Tech Rehearsal/24_Preshow/D70_9515.JPG"]];
@@ -315,15 +309,15 @@ $(document).ready(function() {
 <ul>
 <li>You will see a series of images, presented %NUMIMAGES at a time. The images are mostly of people in various dance activities.</b></li>
 <p>
-<li>In this task, you'll have two jobs for each group of %NUMIMAGES images.   First, you'll rank the images according to photographic quality.   By <b>photographic quality</b>, we just mean your own personal sense of good you think each image is as a composition, compared to the others images in the group of %NUMIMAGES.  Most of the images contain people, but we're looking for your response not to the looks of the specific person(s) in the image, but instead to how good the photograph is of the scene overall.  To indicate your ranking, type the number 1, 2, ... %NUMIMAGES under the image -- where 1 is the best image and %NUMIMAGES is the least good.  No ties in ranking are allowed, so you must always label exactly one image as 1 (the best), one image as 2 (second best), and so on. </li>
+<li>In this task, you're job is to rank the images according to photographic quality.   By <b>photographic quality</b>, we just mean your own personal sense of good you think each image is as an artistic composition, compared to the others images in the group of %NUMIMAGES.  Most of the images contain people, but we're looking for your response not to the looks of the specific person(s) in the image, but instead to how good the photograph itself is.  Imagine you're a photographer sorting through images: think about which ones you'd want to keep, and rank those higher.</li>
 <p>
-<li> Your second job is to get a quick count of the <b>number of people</b> in the image.  If you see one person, type "1", if you see two people, type "2", &c. But we don't want you to spend too much time on this task, so if you see more than 3 people, just type "m" (that is, for "many").  If you see no people at all, type "0".</li>
+<li>To indicate your ranking, type the number 1, 2, ... %NUMIMAGES under the image -- where 1 is the best image and %NUMIMAGES is the least good.  No ties in ranking are allowed, so you must always label exactly one image as 1 (the best), one image as 2 (second best), and so on. </li>
 </ul>
 <center><p onclick="$('#tutorial').html($('#tutorial3').html())"><font color=blue><u>Click here to continue reading</u></font></p></center>
 </div>
 <div id="tutorial3" style="visibility:hidden; position:absolute; z-index:-1;"> 
 <ul>
-<li><b>In total, you will see at most 250 sets of images, but usually fewer. We expect this experiment to take about 30 minutes.</b> Halfway through, we will give you a chance to take a short break and inform you of your progress. Note that the HIT will expire if you spend more than 1 hour, so plan your time accordingly.</li>
+<li><b>In total, you will see 500 sets of images.  We expect this experiment to take less than an hour.</b> At several points during the task, you'll be given time to take a short break to rest and reenergize. Note that the HIT will expire if you spend more than 2 hours, so plan your time accordingly.</li>
 <p>
 <li>When you are ready to begin, click the "Begin" button at the very top of the screen.</li>
 <p>
@@ -332,7 +326,7 @@ $(document).ready(function() {
 <center><font color=blue><u><p onclick="$('#tutorial').dialog('close')">Click here to close the instructions</p></center></font></u>
 </div>
 
-<form style="visibility:hidden" id="postdata" action="https://workersandbox.mturk.com/mturk/externalSubmit" method="post">
+<form style="visibility:hidden" id="postdata" action="https://www.mturk.com/mturk/externalSubmit" method="post">
 <input type="text" name="data" id="data" value="">
 <input type="text" name="assignmentId" id="assignmentId" value="">
 </form>

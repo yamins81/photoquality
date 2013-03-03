@@ -28,7 +28,11 @@ class TechRehearsalImages(object):
 
     S3_ARCHIVES = []
 
-    S3_FILES = []
+    S3_FILES = [('human_data/01_Mongolian_Test_Data_01.pkl', '62a6e5a8e9d788f7dd9c510bec20c501ead8602d'),
+                ('human_data/04_Snow_Dragon_Mountain_Test_Data_01.pkl', '5cef50e9bafebaa0dbcfb4d5d878323c2e67fdec')]
+                
+    human_data = ['01_Mongolian_Test_Data_01', 
+                  '04_Snow_Dragon_Mountain_Test_Data_01']
 
     insize = (4256, 2832)
 
@@ -37,6 +41,7 @@ class TechRehearsalImages(object):
             self.conn = boto.connect_s3()
         else:
             self.conn = boto.connect_s3(*credentials)
+        self.credentials = credentials
         self.bucket = self.conn.get_bucket('pics-from-sam')
         resource_home  = self.home('resources')
         if not os.path.exists(resource_home):
@@ -49,8 +54,64 @@ class TechRehearsalImages(object):
         pass
         
     def fetch(self):
-        pass
+        """Download and extract the dataset."""
+        home = self.home()
+        if not os.path.exists(home):
+            os.makedirs(home)
+        for b in self.S3_ARCHIVES:
+            if len(b) == 2:
+                base, sha1 = b
+                dirn = home
+            else:
+                base, sha1, dn = b
+                dirn = os.path.join(home, dn)
+            archive_filename = os.path.join(home, base.split('/')[-1])
+            if not os.path.exists(archive_filename):
+                #credentials have to be properly set in ~/.boto
+                #or environment variables
+                url = 'http://pics-from-sam.s3.amazonaws.com/' + base
+                print ('downloading %s' % url)
+                download_boto(url, self.credentials, archive_filename, sha1=sha1)
+                extract(archive_filename, dirn, sha1=sha1, verbose=True)
+        for x, sha1 in self.S3_FILES:
+            dirn = os.path.join(home, '/'.join(x.split('/')[:-1]))
+            if not os.path.isdir(dirn):
+                os.makedirs(dirn)
+            filename = os.path.join(home, x)
+            if not os.path.exists(filename):
+                url = 'http://pics-from-sam.s3.amazonaws.com/' + x
+                print ('downloading %s' % url)
+                download_boto(url, self.credentials, filename, sha1=sha1)
 
+    def load_human_data(self):
+        hd = {}
+        for x in self.human_data:
+            fn = self.home('human_data', x+ '.pkl')
+            hd[x]  = cPickle.load(open(fn))
+            for _h in hd[x]:
+                _h['answers'] = json.loads(_h['answers'][0])
+        return hd        
+            
+    def analyze_human_data(self):
+        hd = self.load_human_data()
+        A = {}
+        for k in hd:
+            data = hd[k]
+            N = len(data)
+            ds = [{} for _i in range(N)]
+            imgss = [d['answers'][0]['ImgOrder'] for d in data]
+            resps = [np.array(d['answers'][0]['Response']).astype('int') for d in data]
+            for d, imgs, resp in zip(ds, imgss, resps):
+                for (im, r) in zip(imgs, resp):
+                    for (i, r0) in zip(im, r):
+                        if i in d:
+                            d[i].append(r0)
+                        else:    
+                            d[i] = [r0]
+            Ds = [dict([(_k, np.mean(v)) for _k, v in d.items()]) for d in ds]
+            A[k] = np.array([ds.values() for ds in Ds])
+        return A
+            
     @property
     def meta(self):
         if not hasattr(self, '_meta'):
@@ -105,7 +166,7 @@ class TechRehearsalImages(object):
     def get_splits(self, *args, **kwargs):
         return get_splits(self.meta, *args, **kwargs)
 
-    def get_subsets(self, k, n=None):
+    def get_subsets_random(self, k, n=None):
         meta = self.meta
         events = np.unique(meta['event'])
         subset_d = {}
@@ -118,6 +179,22 @@ class TechRehearsalImages(object):
             for ind in range(n):
                 p = np.random.RandomState(seed=ind).permutation(len(m))[:k]
                 subsets.append(filenames[p].tolist())
+            subset_d[e] = subsets
+        return subset_d
+
+    def get_subsets(self, k, n=None):
+        meta = self.meta
+        events = np.unique(meta['event'])
+        subset_d = {}
+        for e in events:
+            m = meta[meta['event'] == e]
+            fns = m['filename']
+            if n is None:
+                n = len(m)
+            ndict = thing(n, k, len(fns))
+            subsets = []
+            for p in ndict.values():
+                subsets.append(fns[p].tolist())
             subset_d[e] = subsets
         return subset_d
 
@@ -290,3 +367,29 @@ class ImgDownloaderResizer(object):
         assert rval.shape == self._shape, (rval.shape, self._shape)
         return rval
 
+
+from yamutils.basic import dict_inverse
+def thing(R, L, N):
+    S = range(R)
+    nums = dict(zip(range(R), [0]*R))
+    ndict = {}
+    K = R * L / N
+    for n in range(N):
+        inds0 = np.random.RandomState(n).permutation(len(S))[:K]
+        inds = [S[_i] for _i in inds0]
+        for ind in inds:
+            nums[ind] += 1
+            if nums[ind] >= L:
+                S.remove(ind)
+        ndict[n] = inds   
+    ndict = dict_inverse(ndict)
+    cv = 0
+    for iv, kv in enumerate(ndict):
+        if len(ndict[kv]) < L:
+            j = range(cv, cv + L - len(ndict[kv]))
+            jj = [_j % N for _j in j]
+            ndict[kv].extend(jj)
+            cv += len(j)
+        
+    return ndict
+                
