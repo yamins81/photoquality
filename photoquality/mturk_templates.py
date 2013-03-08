@@ -1,4 +1,4 @@
-html_template="""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+html_template_pre="""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
@@ -115,7 +115,7 @@ function init_boxes(){
    for (var rnum = 0; rnum < nrows; rnum++){
        console.log(rnum)
        T = $('#boxes').append('<table style="border-spacing:8px" id="imgtable_' + rnum + '"><tr id="row1' + rnum + '"></tr><tr id="row2' + rnum + '"></tr></table>');
-       for (var i = 0; i < 3; i++){
+       for (var i = 0; i < Math.min(numImages, 3); i++){
             im = new Image;
             imarray.push(im);
             $('#row1' + rnum).append('<td><div><img id="image_' + (3*rnum + i)  + '" src=""/><br/></div></td>');
@@ -301,23 +301,35 @@ $(document).ready(function() {
 <div id="tutorial_original" style="position:absolute; z-index:-1; visibility:hidden;" 
 <b>Please read these instructions carefully!</b>
 <p>Thank you for your interest! You are contributing to ongoing vision research at the Massachusetts Institute of Technology McGovern Institute for Brain Research.</p>
-<p><font color=red><b>This task will require you to look at images on your computer screen and type numbers and letters to indicate responses, for up to about 30 minutes. If you cannot meet these requirements for any reason, or if doing so could cause discomfort or injury, do not accept this HIT.</p>
+<p><font color=red><b>This task will require you to look at images on your computer screen and type numbers and letters to indicate responses, for up to about 45 minutes. If you cannot meet these requirements for any reason, or if doing so could cause discomfort or injury, do not accept this HIT.</p>
 <p>We encourage you to try a little bit of this HIT before accepting to ensure it is compatible with your system. If you think the task is working improperly, your computer may be incompatible.</p></font></b>
 <p>We recommend this task for those who are interested in contributing to scientific endeavors. Your answers will help MIT researchers better understand how the brain processes visual information.</p>
 <center><p onclick="$('#tutorial').html($('#tutorial2').html())"><font color=blue><u>Click here to continue reading</u></font></p></center></div>
 <div id="tutorial2" style="visibility:hidden; position:absolute; z-index:-1;">
-<ul>
+"""
+
+html_template_tut2 = """<ul>
 <li>You will see a series of images, presented %NUMIMAGES at a time. The images are mostly of people in various dance activities.</b></li>
 <p>
-<li>In this task, you're job is to rank the images according to photographic quality.   By <b>photographic quality</b>, we just mean your own personal sense of good you think each image is as an artistic composition, compared to the others images in the group of %NUMIMAGES.  Most of the images contain people, but we're looking for your response not to the looks of the specific person(s) in the image, but instead to how good the photograph itself is.  Imagine you're a photographer sorting through images: think about which ones you'd want to keep, and rank those higher.</li>
+<li>In this task, you're job is to rank the images according to photographic quality.  By <b>photographic quality</b>, we just mean your own personal sense of good you think each image is as an artistic composition, compared to the others images in the group of %NUMIMAGES.  Most of the images contain people, but we're looking for your response not to the looks of the specific person(s) in the image, but instead to how good the photograph itself is.  Imagine you're a photographer sorting through images: think about which ones you'd want to keep, and rank those higher.</li>
 <p>
-<li>To indicate your ranking, type the number 1, 2, ... %NUMIMAGES under the image -- where 1 is the best image and %NUMIMAGES is the least good.  No ties in ranking are allowed, so you must always label exactly one image as 1 (the best), one image as 2 (second best), and so on. </li>
-</ul>
+<li>To indicate your ranking, type it in the box under the image -- where <b>1 is the best</b> image and <b>%NUMIMAGES is the least good</b>.  No ties in ranking are allowed, so you must always label exactly one image as 1 (the best), one image as 2 (second best), and so on, up to %NUMIMAGES. </li>
+</ul>"""
+
+html_template_tut2_2 = """<ul>
+<li>You will see a series of images, presented two at a time. The images are mostly of people in various dance activities.</b></li>
+<p>
+<li>In this task, you're job is to rank the images according to photographic quality.  By <b>photographic quality</b>, we just mean your own personal sense of good you think each image is as an artistic composition, compared to the others images in the group of two.  Most of the images contain people, but we're looking for your response not to the looks of the specific person(s) in the image, but instead to how good the photograph itself is.  Imagine you're a photographer forced to choose between the two images: think about which ones you'd want to keep, and rank that one higher.</li>
+<p>
+<li>To indicate your ranking, type it in the box under the image -- where <b>1 is the better </b> image and <b>2 is the less good</b> image.  No ties in ranking are allowed, so you must always label exactly one image as 1 (better) and one image as 2 (less good). </li>
+</ul>"""
+
+html_template_post = """
 <center><p onclick="$('#tutorial').html($('#tutorial3').html())"><font color=blue><u>Click here to continue reading</u></font></p></center>
 </div>
 <div id="tutorial3" style="visibility:hidden; position:absolute; z-index:-1;"> 
 <ul>
-<li><b>In total, you will see 500 sets of images.  We expect this experiment to take less than an hour.</b> At several points during the task, you'll be given time to take a short break to rest and reenergize. Note that the HIT will expire if you spend more than 2 hours, so plan your time accordingly.</li>
+<li><b>In total, you will see %NUMGROUPS sets of images.  We expect this experiment to take less than an hour.</b> At several points during the task, you'll be given time to take a short break to rest and reenergize. Note that the HIT will expire if you spend more than 2 hours, so plan your time accordingly.</li>
 <p>
 <li>When you are ready to begin, click the "Begin" button at the very top of the screen.</li>
 <p>
@@ -335,6 +347,10 @@ $(document).ready(function() {
 </body>
 </html>
 """
+
+html_template_all = html_template_pre + html_template_tut2 + html_template_post
+
+html_template_all_2 = html_template_pre + html_template_tut2_2 + html_template_post
 
 js_template = """var img_files=%s;
 """

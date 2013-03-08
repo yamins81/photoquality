@@ -10,7 +10,9 @@ from boto.mturk.question import ExternalQuestion
 import boto.mturk.qualification as qual
 
 from .utils import tr_events
-from .mturk_templates import (html_template, js_template)
+from .mturk_templates import (html_template_all,
+                              html_template_all_2,
+                              js_template)
 
 
 class Template1(Template):
@@ -42,7 +44,7 @@ def register_hit_type(credentials, host='mechanicalturk.sandbox.amazonaws.com'):
 
 def run(ht, credentials, host='mechanicalturk.sandbox.amazonaws.com'):
     conn = MTurkConnection(*credentials, host=host)
-    for e in tr_events[3:4]:
+    for e in tr_events[:1]:
         e = e.replace(' ', '_').lower()
         event_url = "http://web.mit.edu/yamins/www/mturk_pq_%s.html" % e
         q = ExternalQuestion(external_url=event_url, frame_height=800)
@@ -53,11 +55,21 @@ def run(ht, credentials, host='mechanicalturk.sandbox.amazonaws.com'):
         assert(create_hit_rs.status == True)
 
 
+
+NUM_IMAGES = 2
+NUM_GROUPS = 1000
+
+
 def make_html_files():
-    numImages = 3
+    if NUM_IMAGES == 2:
+        html_template = html_template_all_2
+    else:
+        html_template = html_template_all
     for e in tr_events:
         e = e.replace(' ', '_').lower()
-        d = Template1(html_template).substitute(JSPATH=e, NUMIMAGES=numImages)
+        d = Template1(html_template).substitute(JSPATH=e,
+                                            NUMIMAGES=NUM_IMAGES,
+                                            NUMGROUPS=NUM_GROUPS)
         outfile = "mturk_pq_%s.html" % e
         with open(outfile, 'w') as f:
             f.write(d)
@@ -65,7 +77,7 @@ def make_html_files():
 
 def make_js_files(credentials):
     dataset = TechRehearsalImages(credentials)
-    subsets = dataset.get_subsets(3, 500)
+    subsets = dataset.get_subsets(NUM_IMAGES, NUM_GROUPS)
     for e in tr_events:
         el = e.replace(' ', '_').lower()
         d = js_template % json.dumps(subsets[e])

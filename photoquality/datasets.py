@@ -29,10 +29,12 @@ class TechRehearsalImages(object):
     S3_ARCHIVES = []
 
     S3_FILES = [('human_data/01_Mongolian_Test_Data_01.pkl', '62a6e5a8e9d788f7dd9c510bec20c501ead8602d'),
-                ('human_data/04_Snow_Dragon_Mountain_Test_Data_01.pkl', '5cef50e9bafebaa0dbcfb4d5d878323c2e67fdec')]
+                ('human_data/04_Snow_Dragon_Mountain_Test_Data_01.pkl', '5cef50e9bafebaa0dbcfb4d5d878323c2e67fdec'),
+                ('human_data/01_Mongolian_Test_Data_01_binary.pkl', '32d89d4170f6deb763e402d697294aaf7df9dc25')]
                 
     human_data = ['01_Mongolian_Test_Data_01', 
-                  '04_Snow_Dragon_Mountain_Test_Data_01']
+                  '04_Snow_Dragon_Mountain_Test_Data_01',
+                  '01_Mongolian_Test_Data_01_binary']
 
     insize = (4256, 2832)
 
