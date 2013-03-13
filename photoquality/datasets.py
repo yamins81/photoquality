@@ -22,6 +22,86 @@ from skdata.utils.download_and_extract import download_boto, extract
 
 import boto
 
+def process_data(data):
+    N = len(data)
+    ds = [{} for _i in range(N)]
+    imgss = [d['answers'][0]['ImgOrder'] for d in data]
+    resps = [np.array(d['answers'][0]['Response']).astype('int') for d in data]
+    for d, imgs, resp in zip(ds, imgss, resps):
+        for (im, r) in zip(imgs, resp):
+            for (i, r0) in zip(im, r):
+                if i in d:
+                    d[i].append(r0)
+                else:    
+                    d[i] = [r0]
+    Ds = [dict([(_k, np.mean(v)) for _k, v in d.items()]) for d in ds]
+    return Ds
+    
+    
+def process_data_split_part(data):
+    N = len(data)
+    ds = [{} for _i in range(N)]
+    imgss = [d['answers'][0]['ImgOrder'] for d in data]
+    resps = [np.array(d['answers'][0]['Response']).astype('int') for d in data]
+    for d, imgs, resp in zip(ds, imgss, resps):
+        for (im, r) in zip(imgs, resp):
+            for (i, r0) in zip(im, r):
+                if i in d:
+                    d[i].append(r0)
+                else:    
+                    d[i] = [r0]
+                    
+    return ds, imgss
+    
+    
+def process_data_splits(data):
+    DSS = [pd.process_data_split_part(ad) for ad in data]
+    def dict_append(d1, d2):
+        for k in d2:
+            if k in d1:
+                d1[k].extend(d2[k])
+            else:
+                d1[k] = d2[k]
+        return d
+    H = []
+    for d in DSS:
+        h = {}
+        for dd in d[0]:
+            dict_append(h, dd)
+        H.append(h)
+
+    
+def process_data_split_all(data):
+    def proc(x):
+        return x[0] == '1'
+    DD = {}
+    for ad in data:
+        for _ad in ad:
+            for (_p, _a) in zip(_ad['answers'][0]['ImgOrder'], _ad['answers'][0]['Response']):
+                if tuple(_p) in DD:
+                    DD[tuple(_p)].append(proc(_a))
+                elif (_p[1], _p[0]) in DD:
+                    DD[(_p[1], _p[0])].append(1 - proc(_a))
+                else:
+                    DD[tuple(_p)] = [proc(_a)]
+                    
+    R = np.array(map(np.mean, DD.values()))
+    
+    DDr = {}
+    for k in DD:
+        if k[0] in DDr:
+            DDr[k[0]].append((np.mean(DD[k]), k[1]))
+        else:
+            DDr[k[0]] = [(np.mean(DD[k]), k[1])]
+        if k[1] in DDr:
+            DDr[k[1]].append((np.mean([1 - _d for _d in DD[k]]), k[0]))
+        else:
+            DDr[k[1]] = [(np.mean([1 - _d for _d in DD[k]]), k[0])]
+    #for k in DDr:
+    #    DDr[k] = DDr[k].mean()
+    return DD, R, DDr
+    
+    
 class TechRehearsalImages(object):
 
     name = 'TechRehearsal'
@@ -30,11 +110,21 @@ class TechRehearsalImages(object):
 
     S3_FILES = [('human_data/01_Mongolian_Test_Data_01.pkl', '62a6e5a8e9d788f7dd9c510bec20c501ead8602d'),
                 ('human_data/04_Snow_Dragon_Mountain_Test_Data_01.pkl', '5cef50e9bafebaa0dbcfb4d5d878323c2e67fdec'),
-                ('human_data/01_Mongolian_Test_Data_01_binary.pkl', '32d89d4170f6deb763e402d697294aaf7df9dc25')]
+                ('human_data/01_Mongolian_Test_Data_01_binary.pkl', '32d89d4170f6deb763e402d697294aaf7df9dc25'),
+                ('human_data/01_Mongolian_Test_Data_01_binary_splits.pkl', '3da6161770d5de538be8dccf5192c0ae844fbf44'),
+                ('human_data/03_Lantern_Test_Data_01_binary_splits.pkl', '3c45913634a8120b536861917851969fc94cb371'),
+                ('human_data/06_Just_You_Test_Data_01_binary_splits.pkl', '349312ae3b4d49c8495133a9f3374029791cce68'), 
+                ('human_data/07_Misa_Test_Data_01_binary_splits.pkl', 'e8a3e74d343b9f6adb419a5e7d7d47bb6ad2c702'), 
+                ('human_data/11_Basket_Test_Data_01_binary_splits.pkl', 'c58183b54923bc98e7431245342abbc11487ab8e')]
                 
     human_data = ['01_Mongolian_Test_Data_01', 
                   '04_Snow_Dragon_Mountain_Test_Data_01',
-                  '01_Mongolian_Test_Data_01_binary']
+                  '01_Mongolian_Test_Data_01_binary',
+                  '01_Mongolian_Test_Data_01_binary_splits',
+                  '03_Lantern_Test_Data_01_binary_splits',
+                  '06_Just_You_Test_Data_01_binary_splits',
+                  '07_Misa_Test_Data_01_binary_splits',
+                  '11_Basket_Test_Data_01_binary_splits']
 
     insize = (4256, 2832)
 
@@ -92,30 +182,24 @@ class TechRehearsalImages(object):
             fn = self.home('human_data', x+ '.pkl')
             hd[x]  = cPickle.load(open(fn))
             for _h in hd[x]:
-                _h['answers'] = json.loads(_h['answers'][0])
+                if hasattr(_h, 'keys'):
+                    _h = [_h]
+                for _hh in _h:
+                    _hh['answers'] = json.loads(_hh['answers'][0])
         return hd        
-            
+                    
     def analyze_human_data(self):
         hd = self.load_human_data()
         A = {}
         DSS = {}
         for k in hd:
             data = hd[k]
-            N = len(data)
-            ds = [{} for _i in range(N)]
-            imgss = [d['answers'][0]['ImgOrder'] for d in data]
-            resps = [np.array(d['answers'][0]['Response']).astype('int') for d in data]
-            for d, imgs, resp in zip(ds, imgss, resps):
-                for (im, r) in zip(imgs, resp):
-                    for (i, r0) in zip(im, r):
-                        if i in d:
-                            d[i].append(r0)
-                        else:    
-                            d[i] = [r0]
-            Ds = [dict([(_k, np.mean(v)) for _k, v in d.items()]) for d in ds]
-            DSS[k] = Ds
-            A[k] = np.array([ds.values() for ds in Ds])
-            
+            if hasattr(data[0], 'keys'):
+                Ds = process_data(data)
+                DSS[k] = Ds
+                A[k] = np.array([ds.values() for ds in Ds])
+            else:
+                A[k] = process_data_split_all(data)
         return A, DSS
             
     @property
@@ -188,7 +272,7 @@ class TechRehearsalImages(object):
             subset_d[e] = subsets
         return subset_d
 
-    def get_subsets(self, k, n=None):
+    def get_subsets(self, k, n=None, ns=0):
         meta = self.meta
         events = np.unique(meta['event'])
         subset_d = {}
@@ -197,7 +281,7 @@ class TechRehearsalImages(object):
             fns = m['filename']
             if n is None:
                 n = len(m)
-            ndict = thing(n, k, len(fns))
+            ndict = thing(n, k, len(fns), ns=ns)
             subsets = []
             for p in ndict.values():
                 subsets.append(fns[p].tolist())
@@ -375,13 +459,13 @@ class ImgDownloaderResizer(object):
 
 
 from yamutils.basic import dict_inverse
-def thing(R, L, N):
+def thing(R, L, N, ns=0):
     S = range(R)
     nums = dict(zip(range(R), [0]*R))
     ndict = {}
     K = R * L / N
     for n in range(N):
-        inds0 = np.random.RandomState(n).permutation(len(S))[:K]
+        inds0 = np.random.RandomState(n + ns * N).permutation(len(S))[:K]
         inds = [S[_i] for _i in inds0]
         for ind in inds:
             nums[ind] += 1

@@ -27,7 +27,7 @@ padding: 10px;
 <script type="text/javascript" src="http://web.mit.edu/esolomon/www/javascripts/jQueryRotate.2.2.js"></script>
 <script type="text/javascript" src="http://web.mit.edu/esolomon/www/javascripts/jQuery.mousewheel.js"></script>
 <script type="text/javascript" src="http://web.mit.edu/esolomon/www/javascripts/jquery.zoom-min.js"></script>
-<script type="text/javascript" src="http://web.mit.edu/yamins/www/%{JSPATH}_subsets.js"></script>
+<script type="text/javascript" src="http://web.mit.edu/yamins/www/pq/%{JSPATH}"></script>
 <script type="text/javascript" src="http://web.mit.edu/esolomon/www/zen.js"></script>
 <script type="text/javascript" src="http://esolomon.scripts.mit.edu/ip.php"></script>
 <script src="http://web.mit.edu/esolomon/www/javascripts/detect-zoom.js" type="text/javascript"></script>
@@ -301,7 +301,7 @@ $(document).ready(function() {
 <div id="tutorial_original" style="position:absolute; z-index:-1; visibility:hidden;" 
 <b>Please read these instructions carefully!</b>
 <p>Thank you for your interest! You are contributing to ongoing vision research at the Massachusetts Institute of Technology McGovern Institute for Brain Research.</p>
-<p><font color=red><b>This task will require you to look at images on your computer screen and type numbers and letters to indicate responses, for up to about 45 minutes. If you cannot meet these requirements for any reason, or if doing so could cause discomfort or injury, do not accept this HIT.</p>
+<p><font color=red><b>This task will require you to look at images on your computer screen and type numbers and letters to indicate responses, for up to about 10 minutes. If you cannot meet these requirements for any reason, or if doing so could cause discomfort or injury, do not accept this HIT.</p>
 <p>We encourage you to try a little bit of this HIT before accepting to ensure it is compatible with your system. If you think the task is working improperly, your computer may be incompatible.</p></font></b>
 <p>We recommend this task for those who are interested in contributing to scientific endeavors. Your answers will help MIT researchers better understand how the brain processes visual information.</p>
 <center><p onclick="$('#tutorial').html($('#tutorial2').html())"><font color=blue><u>Click here to continue reading</u></font></p></center></div>
@@ -329,7 +329,7 @@ html_template_post = """
 </div>
 <div id="tutorial3" style="visibility:hidden; position:absolute; z-index:-1;"> 
 <ul>
-<li><b>In total, you will see %NUMGROUPS sets of images.  We expect this experiment to take less than an hour.</b> At several points during the task, you'll be given time to take a short break to rest and reenergize. Note that the HIT will expire if you spend more than 2 hours, so plan your time accordingly.</li>
+<li><b>In total, you will see %NUMGROUPS sets of images.  We expect this experiment to take less than twenty minutes.</b> At several points during the task, you'll be given time to take a short break to rest and reenergize. Note that the HIT will expire if you spend more than an hour, so plan your time accordingly.</li>
 <p>
 <li>When you are ready to begin, click the "Begin" button at the very top of the screen.</li>
 <p>
